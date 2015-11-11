@@ -11,6 +11,14 @@ class TimelyObject(object):
 		raise NotImplementedError
 
 	@property
+	def beginning(self):
+		raise NotImplementedError
+
+	@property
+	def end(self):
+		raise NotImplementedError
+
+	@property
 	def timely_type(self):
 		raise NotImplementedError
 
@@ -69,7 +77,10 @@ class TimelyObject(object):
 		raise NotImplementedError
 
 class Instant(TimelyObject):
-	pass
+	'''
+	Represents an instant in time. Inherits from the DateTime class, 
+	but may be plus or minus infinity to help define open intervals.
+	'''
 
 class Interval(TimelyObject):
 	pass
