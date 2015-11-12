@@ -1,4 +1,4 @@
-from datetime import DateTime
+from datetime import datetime
 
 class TimelyObject(object):
 	# properties
@@ -31,6 +31,38 @@ class TimelyObject(object):
 		raise NotImplementedError
 
 	# binary relations
+	# pythonic style
+	def __eq__(self, other):
+		raise NotImplementedError
+
+	def __add__(self, other):
+		raise NotImplementedError
+
+	def __sub__(self, other):
+		raise NotImplementedError
+
+	def __mul__(self, other):
+		raise NotImplementedError
+
+	def __contains__(self, other):
+		raise NotImplementedError
+
+	def __and__(self, other):
+		raise NotImplementedError
+
+	def __or__(self, other):
+		raise NotImplementedError
+
+	def __nonzero__(self, other):
+		raise NotImplementedError
+
+	def __len__(self, other):
+		raise NotImplementedError
+
+	def __iter__(self, other):
+		raise NotImplementedError
+
+	# shapely style
 	def equals(self, other):
 		raise NotImplementedError
 
