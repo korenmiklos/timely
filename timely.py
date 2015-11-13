@@ -33,28 +33,28 @@ class TimelyObject(object):
 	# binary relations
 	# pythonic style
 	def __eq__(self, other):
-		raise NotImplementedError
+		return self.equals(other)
 
 	def __add__(self, other):
-		raise NotImplementedError
+		return self.union(other)
 
 	def __sub__(self, other):
-		raise NotImplementedError
+		return self.difference(other)
 
 	def __mul__(self, other):
-		raise NotImplementedError
+		return self.intersection(other)
 
 	def __contains__(self, other):
-		raise NotImplementedError
+		return self.contains(other)
 
 	def __and__(self, other):
-		raise NotImplementedError
+		return self.intersection(other)
 
 	def __or__(self, other):
-		raise NotImplementedError
+		return self.union(other)
 
 	def __nonzero__(self, other):
-		raise NotImplementedError
+		return not self.is_empty
 
 	def __len__(self, other):
 		raise NotImplementedError
@@ -66,32 +66,20 @@ class TimelyObject(object):
 	def equals(self, other):
 		raise NotImplementedError
 
-	def almost_equals(self, other):
-		raise NotImplementedError
-
 	def contains(self, other):
-		raise NotImplementedError
+		return self.union(other).equals(self)
 
 	def disjoint(self, other):
-		raise NotImplementedError
+		return self.intersection(other).is_empty
 
 	def intersects(self, other):
-		raise NotImplementedError
-
-	def touches(self, other):
-		raise NotImplementedError
-
-	def within(self, other):
-		raise NotImplementedError
+		return not self.disjoint(other)
 
 	# binary operators
 	def difference(self, other):
 		raise NotImplementedError
 
 	def intersection(self, other):
-		raise NotImplementedError
-
-	def symmetric_difference(self, other):
 		raise NotImplementedError
 
 	def union(self, other):

@@ -18,7 +18,7 @@ sample_period = timely.MultiInterval([year_1996, worker_spell, other_worker_spel
 worker_spells = [worker_spell, other_worker_spell]
 sample_period = timely.MultiInterval(worker_spells).envelope
 events = [spell.beginning for spell in worker_spells] + [spell.end for spell in worker_spells]
-segments = sample_period.segment_by_instant(events)
+segments = sample_period.split(events)
 
 output = []
 for segment in segments:
