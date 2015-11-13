@@ -98,12 +98,12 @@ class TestInstantRelation(unittest.TestCase):
 		self.failUnless(instant2 > instant1)
 
 	def test_beginningoftime_smaller(self):
-		instant1 = module.Instant.BOT
+		instant1 = module.BOT
 		instant2 = module.Instant('1996-01-03')
 		self.failUnless(instant2 > instant1)
 
 	def test_endoftime_bigger(self):
-		instant1 = module.Instant.EOT
+		instant1 = module.EOT
 		instant2 = module.Instant('1996-01-03')
 		self.failUnless(instant2 < instant1)
 
