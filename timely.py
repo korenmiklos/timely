@@ -1,30 +1,71 @@
 from datetime import datetime, timedelta
 from dateutil.parser import parse
-from shapely.geometry import Point, LineString
+from shapely.geometry import Point, LineString, MultiLineString
+from shapely.ops import linemerge
+
+ORIGIN = datetime.fromordinal(1)
+_BOT = ORIGIN
+_EOT = datetime(9999,12,31)
 
 def coerce(what):
 	'''
-	Coerces 'what' into a datetime.
+	Coerces 'what' into a date.
 	'''
+	if isinstance(what, Instant):
+		return what.datetime
 	if isinstance(what, datetime):
 		return what
 	if isinstance(what, basestring):
 		return parse(what)
+
+def simplify(shape):
+	if isinstance(shape, MultiLineString):
+		return linemerge(shape)
+	return shape
+
+def shape_as_time(shape):
+	simple = simplify(shape)
+	if isinstance(simple, Point):
+		t = ORIGIN+x_as_timedelta(shape.x)
+		return Instant(t)
+	if isinstance(simple, LineString):
+		(x1, _, x2, __) = shape.bounds
+		t1 = ORIGIN+x_as_timedelta(x1)
+		t2 = ORIGIN+x_as_timedelta(x2)
+		return Interval((t1, t2))
+	if isinstance(shape, MultiLineString):
+		raise NotImplementedError
+	return Instant('', empty=True)
+
+def time_as_shape(timelyobject):
+	if timelyobject.is_empty:
+		return Point()
+	if isinstance(timelyobject, Instant):
+		x = timedelta_as_x(timelyobject.datetime-ORIGIN)
+		return Point((x, 0))
+	if isinstance(timelyobject, Interval):
+		x1 = timedelta_as_x(timelyobject.beginning.datetime-ORIGIN)
+		x2 = timedelta_as_x(timelyobject.end.datetime-ORIGIN)
+		return LineString([(x1, 0), (x2, 0)])
+	return Point()
+
+def timedelta_as_x(t):
+	# time is measured in days
+	return float(t.days)
+
+def x_as_timedelta(x):
+	return timedelta(days=x)
 
 class TimelyObject(object):
 	# properties
 	# properties
 	@property
 	def length(self):
-		return self.end.datetime-self.beginning.datetime
+		return x_as_timedelta(time_as_shape(self).length)
 
 	@property
 	def bounds(self):
-		return (self.beginning, self.end)
-
-	@property 
-	def is_empty(self):
-		return False
+		raise NotImplementedError
 
 	# binary relations
 	# pythonic style
@@ -55,7 +96,7 @@ class TimelyObject(object):
 	def __or__(self, other):
 		return self.union(other)
 
-	def __nonzero__(self, other):
+	def __nonzero__(self):
 		return not self.is_empty
 
 	def __len__(self, other):
@@ -66,35 +107,31 @@ class TimelyObject(object):
 
 	# shapely style
 	def equals(self, other):
-		raise NotImplementedError
+		return time_as_shape(self).equals(time_as_shape(other))
 
 	def contains(self, other):
-		return self.union(other).equals(self)
+		return time_as_shape(self).contains(time_as_shape(other))
 
 	def disjoint(self, other):
-		return self.intersection(other).is_empty
+		return time_as_shape(self).disjoint(time_as_shape(other))
 
 	def intersects(self, other):
-		return not self.disjoint(other)
+		return time_as_shape(self).intersects(time_as_shape(other))
 
 	def distance(self, other):
-		raise NotImplementedError
+		return x_as_timedelta(time_as_shape(self).distance(time_as_shape(other)))
 
 	# binary operators
 	def difference(self, other):
-		raise NotImplementedError
+		return shape_as_time(time_as_shape(self).difference(time_as_shape(other)))
 
 	def intersection(self, other):
-		return other.intersection(self)
+		return shape_as_time(time_as_shape(self).intersection(time_as_shape(other)))
 
 	def union(self, other):
-		return other.union(self)
+		return shape_as_time(time_as_shape(self).union(time_as_shape(other)))
 
 	# unary constructors
-	@property
-	def envelope(self):
-		return shape_to_time(self.time_geometry.envelope)
-
 	def offset(self, difference):
 		raise NotImplementedError
 
@@ -102,111 +139,65 @@ class TimelyObject(object):
 	def __unicode__(self):
 		raise NotImplementedError
 
-class Empty(TimelyObject):
-	pass
+	def __str__(self):
+		return unicode(self)
 
 class Instant(TimelyObject):
 	def __init__(self, what, BOT=False, EOT=False, empty=False):
 		assert not (BOT and EOT)
-		if not BOT or EOT or empty:
+		if not (not what or BOT or EOT or empty):
 			self.datetime = coerce(what)
+		else:
+			if BOT or empty:
+				self.datetime = _BOT
+			if EOT:
+				self.datetime = _EOT
 		self.BOT = BOT
 		self.EOT = EOT
+		self.is_empty = empty or (not what and not (BOT or EOT))
 
-	@property
-	def length(self):
-		return timedelta(0)
+	def __unicode__(self):
+		return self.datetime.isoformat()
 
 	@property
 	def bounds(self):
 		return (self, self)
 
-	def equals(self, other):
-		if not isinstance(other, Instant):
-			return False
-		if self.BOT:
-			return other.BOT
-		if self.EOT:
-			return other.EOT
-		return self.datetime==other.datetime
-
-	def distance(self, other):
-		raise NotImplementedError
-
-	# binary operators
-	def difference(self, other):
-		raise NotImplementedError
-
-	def intersection(self, other):
-		if isinstance(other, Instant):
-			if self.equals(other):
-				return self
-			else:
-				return EMPTY
-		elif isinstance(other, Interval):
-			if (self>=other.beginning) and (self<=other.end):
-				return self
-			else:
-				return Empty()
 
 class Interval(TimelyObject):
-	def __init__(self, what):
-		if isinstance(what, basestring):
-			(b, e) = what.split('/')
+	def __init__(self, what, empty=False):
+		if empty:
+			self.is_empty = True
 		else:
-			(b, e) = what
-		self.beginning = Instant(b)
-		self.end = Instant(e)
+			self.is_empty = empty
+			if isinstance(what, basestring):
+				(b, e) = what.split('/')
+			else:
+				(b, e) = what
+			self.beginning = Instant(b)
+			self.end = Instant(e)
+			if self.beginning.is_empty:
+				self.beginning = Instant('', BOT=True)
+			if self.end.is_empty:
+				self.end = Instant('', EOT=True)
 
-	def split(self):
-		pass
+	def __unicode__(self):
+		return u'%s/%s' % (unicode(self.beginning), unicode(self.end))
 
 	@property
-	def length(self):
-		return self.end.datetime-self.beginning.datetime
+	def bounds(self):
+		return (self.beginning, self.end)
 
-	def equals(self, other):
-		if not isinstance(other, Interval):
-			return False
-		return (self.beginning==other.beginning) and (self.end==other.end)
-
-	def distance(self, other):
-		raise NotImplementedError
-
-	# binary operators
-	def difference(self, other):
-		raise NotImplementedError
-
-	def intersection(self, other):
-		if isinstance(other, Instant):
-			return other.intersection(self)
-		elif isinstance(other, Interval):
-			b = max(self.beginning, other.beginning)
-			e = min(self.end, other.end)
-			if e>=b:
-				return Interval((b,e))
-			else:
-				return Empty()
-
-	def union(self, other):
-		if isinstance(other, Instant):
-			if self.intersects(other):
-				return self
-		if isinstance(other, Interval):
-			if self.intersects(other):
-				b = min(self.beginning, other.beginning)
-				e = max(self.end, other.end)
-				return Interval((b,e))
-
+	def split(self, instant):
+		if instant in self:
+			(b, e) = self.bounds
+			x = instant
+			return MultiInterval([(b, x), (x, e)])
+		return self
 
 class MultiInstant(TimelyObject):
 	pass
 
 class MultiInterval(TimelyObject):
 	pass
-
-# beginning and end of time
-BOT = Instant('', BOT=True)
-EOT = Instant('', EOT=True)
-EMPTY = Instant('', empty=True)
 
