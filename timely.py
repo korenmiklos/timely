@@ -154,7 +154,9 @@ class Instant(TimelyObject):
 		if not (not what or BOT or EOT or empty):
 			self.datetime = coerce(what)
 		else:
-			if BOT or empty:
+			if empty or not what:
+				self.datetime = None
+			if BOT:
 				self.datetime = _BOT
 			if EOT:
 				self.datetime = _EOT
@@ -173,7 +175,10 @@ class Instant(TimelyObject):
 		return (self, self)
 
 	def __le__(self, other):
-		return self.BOT or other.EOT or (self.is_empty and other.is_empty) or (self.datetime<=other.datetime)
+		if self.is_empty or other.is_empty:
+			# empty instants cannot be compared
+			return False
+		return self.BOT or other.EOT or (not self.EOT and not other.BOT and self.datetime<=other.datetime)
 
 	def __ge__(self, other):
 		return other<=self

@@ -47,6 +47,10 @@ class TestInstant(unittest.TestCase):
         instant = module.Instant('')
         self.failUnless(isinstance(instant, module.Instant))
 
+    def test_empty_interval(self):
+        instant = module.Instant('')
+        self.failUnless(instant.is_empty)
+
     def test_string_is_8601(self):
         instant = module.Instant('2007-04-05')
         self.assertEqual(unicode(instant), u'2007-04-05T00:00:00')
