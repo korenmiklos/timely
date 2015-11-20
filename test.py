@@ -65,6 +65,10 @@ class TestInterval(unittest.TestCase):
         interval = module.Interval(('1996-01-01', '1996-01-03'))
         self.failUnless(isinstance(interval, module.Interval))
 
+    def test_reverse_interval_empty(self):
+        interval = module.Interval(('1998-01-01', '1996-01-03'))
+        self.failUnless(interval.is_empty)
+
     def test_interval_ends_midnight(self):
         interval = module.Interval(('1996-01-01', '1996-01-03'))
         desired = module.Instant('1996-01-04T00:00:00')

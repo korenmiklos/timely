@@ -79,10 +79,10 @@ class TimelyObject(object):
 		return self.equals(other)
 
 	def __le__(self, other):
-		return self.bounds[1].datetime<=other.bounds[0].datetime
+		return self.bounds[1]<=other.bounds[0]
 
 	def __ge__(self, other):
-		return self.bounds[0].datetime>=other.bounds[1].datetime
+		return self.bounds[0]>=other.bounds[1]
 
 	def __add__(self, other):
 		return self.union(other)
@@ -172,6 +172,12 @@ class Instant(TimelyObject):
 	def bounds(self):
 		return (self, self)
 
+	def __le__(self, other):
+		return self.BOT or other.EOT or (self.is_empty and other.is_empty) or (self.datetime<=other.datetime)
+
+	def __ge__(self, other):
+		return other<=self
+
 
 class Interval(TimelyObject):
 	def __init__(self, what, empty=False):
@@ -185,6 +191,8 @@ class Interval(TimelyObject):
 				(b, e) = what
 			self.beginning = Instant(b)
 			self.end = Instant(e)
+			if self.end<=self.beginning:
+				self.is_empty = True
 			if self.beginning.is_empty:
 				self.beginning = Instant('', BOT=True)
 			if self.end.is_empty:
