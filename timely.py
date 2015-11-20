@@ -38,12 +38,14 @@ def shape_as_time(shape):
 	return Instant('', empty=True)
 
 def time_as_shape(timelyobject):
-	if timelyobject.is_empty:
-		return Point()
 	if isinstance(timelyobject, Instant):
+		if timelyobject.is_empty:
+			return Point()
 		x = timedelta_as_x(timelyobject.datetime-ORIGIN)
 		return Point((x, 0))
 	if isinstance(timelyobject, Interval):
+		if timelyobject.is_empty:
+			return LineString()
 		x1 = timedelta_as_x(timelyobject.beginning.datetime-ORIGIN)
 		x2 = timedelta_as_x(timelyobject.end.datetime-ORIGIN)
 		return LineString([(x1, 0), (x2, 0)])
@@ -157,7 +159,10 @@ class Instant(TimelyObject):
 		self.is_empty = empty or (not what and not (BOT or EOT))
 
 	def __unicode__(self):
-		return self.datetime.isoformat()
+		if not self.is_empty:
+			return self.datetime.isoformat()
+		else:
+			return 'Empty Instant'
 
 	@property
 	def bounds(self):
@@ -182,7 +187,10 @@ class Interval(TimelyObject):
 				self.end = Instant('', EOT=True)
 
 	def __unicode__(self):
-		return u'%s/%s' % (unicode(self.beginning), unicode(self.end))
+		if not self.is_empty:
+			return u'%s/%s' % (unicode(self.beginning), unicode(self.end))
+		else:
+			return 'Empty Interval'
 
 	@property
 	def bounds(self):

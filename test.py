@@ -174,6 +174,18 @@ class TestOperation(unittest.TestCase):
         desired = module.Interval(('1996-01-01', '1996-01-02'))
         self.assertEqual(desired, actual, msg='\n%s\n%s' % (desired, actual))
 
+    def test_difference_of_disjoint_intervals(self):
+        interval1 = module.Interval(('1996-01-01', '1996-01-02'))
+        interval2 = module.Interval(('1996-01-03', '1996-01-08'))
+        actual = interval1.difference(interval2)
+        desired = interval1
+        self.assertEqual(desired, actual, msg='\n%s\n%s' % (desired, actual))
+
+    def test_difference_of_equal_intervals(self):
+        interval1 = module.Interval(('1996-01-01', '1996-01-02'))
+        actual = interval1.difference(interval1)
+        self.failUnless(actual.is_empty, msg=actual)
+
     def test_interval_union(self):
         interval1 = module.Interval(('1996-01-01', '1996-01-03'))
         interval2 = module.Interval(('1996-01-02', '1996-01-08'))
