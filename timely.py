@@ -34,7 +34,7 @@ def shape_as_time(shape):
 		t2 = ORIGIN+x_as_timedelta(x2)
 		return Interval((t1, t2))
 	if isinstance(shape, MultiLineString):
-		raise NotImplementedError
+		return MultiInterval([shape_as_time(segment) for segment in shape.geoms])
 	return Instant('', empty=True)
 
 def time_as_shape(timelyobject):
@@ -49,6 +49,10 @@ def time_as_shape(timelyobject):
 		x1 = timedelta_as_x(timelyobject.beginning.datetime-ORIGIN)
 		x2 = timedelta_as_x(timelyobject.end.datetime-ORIGIN)
 		return LineString([(x1, 0), (x2, 0)])
+	if isinstance(timelyobject, MultiInterval):
+		if timelyobject.is_empty:
+			return MultiLineString()
+		return MultiLineString([time_as_shape(interval) for interval in timelyobject.intervals])
 	return Point()
 
 def timedelta_as_x(t):
@@ -200,12 +204,29 @@ class Interval(TimelyObject):
 		if instant in self:
 			(b, e) = self.bounds
 			x = instant
-			return MultiInterval([(b, x), (x, e)])
+			return MultiInterval([Interval((b, x)), Interval((x, e))])
 		return self
 
 class MultiInstant(TimelyObject):
 	pass
 
 class MultiInterval(TimelyObject):
-	pass
+	def __init__(self, list_of_intervals, empty=False):
+		if empty:
+			self.is_empty = True
+		else:
+			self.is_empty = empty
+			self.intervals = list_of_intervals
+
+	def __unicode__(self):
+		if not self.is_empty:
+			return u','.join([unicode(i) for i in self.intervals])
+		else:
+			return 'Empty MultiInterval'
+
+	@property
+	def bounds(self):
+		b = min([i.beginning for i in self.intervals])
+		e = max([i.end for i in self.intervals])
+		return (b, e)
 

@@ -3,6 +3,9 @@ import unittest
 from datetime import timedelta
 from shapely.geometry import Point, LineString
 
+def equal(self, desired, actual):
+    self.assertEqual(desired, actual, msg='\n%s\n%s' % (desired, actual))
+
 class TestConversionFunctions(unittest.TestCase):
     def test_x_is_float(self):
         dt = timedelta(days=1)
@@ -30,7 +33,7 @@ class TestConversionFunctions(unittest.TestCase):
         x = module.time_as_shape(t)
         desired = t
         actual = module.shape_as_time(x)
-        self.assertEqual(desired, actual, msg='\n%s\n%s' % (desired, actual))
+        equal(self, desired, actual)
 
 class TestInstant(unittest.TestCase):
     def test_create_from_datetime(self):
@@ -100,7 +103,18 @@ class TestMultiInstant(unittest.TestCase):
     pass
 
 class TestMultiInterval(unittest.TestCase):
-    pass
+    def test_create_from_intervals(self):
+        interval1 = module.Interval(('1996-01-01', '1996-01-03'))
+        interval2 = module.Interval(('1996-01-02', '1996-01-08'))
+        actual = module.MultiInterval([interval1, interval2])
+        self.failUnless(isinstance(actual, module.MultiInterval))
+
+    def test_bounds(self):
+        interval1 = module.Interval(('1996-01-01', '1996-01-03'))
+        interval2 = module.Interval(('1996-01-02', '1996-01-08'))
+        actual = module.MultiInterval([interval1, interval2]).bounds
+        desired = (interval1.beginning, interval2.end)
+        equal(self, desired, actual)
 
 class TestInstantRelation(unittest.TestCase):
     def test_instant_equal(self):
@@ -158,6 +172,28 @@ class TestIntervalRelation(unittest.TestCase):
         interval1 = module.Interval(('1996-01-01', '1996-01-03'))
         interval2 = module.Interval(('1996-01-02', '1996-01-08'))
         self.failIf((interval2 in interval1) or (interval1 in interval2))
+
+class TestMIRelation(unittest.TestCase):
+    def test_multiinterval_contains_instant(self):
+        interval1 = module.Interval(('1996-01-01', '1996-01-03'))
+        interval2 = module.Interval(('1996-01-07', '1996-01-08'))
+        mi = module.MultiInterval([interval1, interval2])
+        instant = module.Instant('1996-01-02')
+        self.failUnless(instant in mi)
+
+    def test_multiinterval_does_not_contain_instant(self):
+        interval1 = module.Interval(('1996-01-01', '1996-01-03'))
+        interval2 = module.Interval(('1996-01-07', '1996-01-08'))
+        mi = module.MultiInterval([interval1, interval2])
+        instant = module.Instant('1996-01-05')
+        self.failIf(instant in mi)
+        
+    def test_multiinterval_does_not_intersect_interval(self):
+        interval1 = module.Interval(('1996-01-01', '1996-01-03'))
+        interval2 = module.Interval(('1996-01-07', '1996-01-08'))
+        interval3 = module.Interval(('1996-01-04', '1996-01-06'))
+        mi = module.MultiInterval([interval1, interval2])
+        self.failIf(mi.intersects(interval3))
         
 class TestOperation(unittest.TestCase):
     def test_interval_intersection(self):
@@ -201,9 +237,10 @@ class TestOperation(unittest.TestCase):
     def test_interval_split(self):
         interval = module.Interval(('1996-01-01', '1996-01-03'))
         instant = module.Instant('1996-01-02')
-        desired1 = module.Interval(('1996-01-01', '1996-01-01'))
+        desired1 = module.Interval(('1996-01-01', '1996-01-02'))
         desired2 = module.Interval(('1996-01-02', '1996-01-03'))
-        self.assertEqual(interval.split(instant), module.MultiInterval([desired1, desired2]))
+        actual = interval.split(instant)
+        equal(self, module.MultiInterval([desired1, desired2]), actual)
 
 if __name__ == '__main__':
     unittest.main()
