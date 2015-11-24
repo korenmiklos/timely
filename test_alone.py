@@ -31,6 +31,17 @@ class TestTagSpells(unittest.TestCase):
         desired[1]['days_alone'] = 28
         self.assertListEqual(actual, desired)
 
+    def test_three_spells(self):
+        row1 = dict(id=1, start_date='1991-01-01', end_date='1991-01-15')
+        row2 = dict(id=1, start_date='1991-01-10', end_date='1991-01-31')
+        row3 = dict(id=1, start_date='1991-01-05', end_date='1991-01-20')
+        actual = self.tag_spells([row1.copy(), row2.copy(), row3.copy()])
+        desired = [row1, row2, row3]
+        desired[0]['days_alone'] = 4
+        desired[1]['days_alone'] = 11
+        desired[2]['days_alone'] = 0
+        self.assertListEqual(actual, desired)
+
     def test_clones_alone_in_different_groups(self):
         row1 = dict(id=2, start_date='1991-01-01', end_date='1991-12-31')
         row2 = dict(id=1, start_date='1991-01-01', end_date='1991-12-31')
